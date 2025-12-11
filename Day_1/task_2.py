@@ -1,67 +1,73 @@
-#!/usr/bin/env python3
-"""
-Advent of Code 2025 - Day 1 Part 2 (method 0x434C49434B)
-
-Reads rotations from input.txt (same folder) and counts how many times
-the dial points at 0 during the entire sequence of clicks (including
-intermediate clicks and the final click of each rotation).
-
-Dial numbers: 0..99, starts at 50.
-"""
-
 from typing import Iterable
 
-def parse_line(line: str):
-    """Return (direction, distance) or None for invalid line."""
+
+def parse_instruction(line: str):
+    """
+    Parse a single rotation instruction.
+    Accepts formats like 'L68' or 'R 48'.
+    Returns (direction, distance) or None if invalid.
+    """
     s = line.strip()
     if not s:
         return None
-    # Accept "L68", "R48", or "L 68", "R 48"
+
+    # Compact form: "L68"
     if s[0] in ('L', 'R') and s[1:].strip().lstrip('+-').isdigit():
         return s[0], int(s[1:].strip())
+
+    # Spaced form: "L 68"
     parts = s.split()
     if len(parts) == 2 and parts[0] in ('L', 'R') and parts[1].lstrip('+-').isdigit():
         return parts[0], int(parts[1])
+
     return None
+
 
 def hits_on_zero_during_rotation(start_pos: int, direction: str, distance: int) -> int:
     """
-    Count how many times the dial equals 0 for clicks k=1..distance,
-    when starting at start_pos (0..99).
+    Count how many times the dial equals 0 during a single rotation.
+    Checks each click from 1..distance starting at start_pos.
     """
     if distance <= 0:
         return 0
 
     if direction == 'R':
-        # We need k in [1..d] such that (start_pos + k) % 100 == 0
-        k0 = (100 - start_pos) % 100  # first k that hits 0 (0..99)
+        # First click that lands on 0 when rotating right
+        k0 = (100 - start_pos) % 100
     else:  # 'L'
-        # We need k in [1..d] such that (start_pos - k) % 100 == 0
-        k0 = start_pos % 100  # first k that hits 0 (0..99)
+        # First click that lands on 0 when rotating left
+        k0 = start_pos % 100
 
-    # interpret k0==0 as the 100th click (i.e., every 100 clicks)
+    # Interpret k0 == 0 as the 100th click
     if k0 == 0:
         k0 = 100
 
     if distance < k0:
         return 0
-    # first hit at k0, then every +100
+
+    # First hit at k0, then every +100 clicks
     return 1 + (distance - k0) // 100
 
-def count_zero_hits_from_lines(lines: Iterable[str]) -> int:
-    pos = 50
+
+def count_zero_hits(lines: Iterable[str]) -> int:
+    """
+    Process all instructions and count total hits on 0
+    across the entire sequence of rotations.
+    """
+    pos = 50  # starting position
     total_hits = 0
 
     for raw in lines:
-        parsed = parse_line(raw)
-        if parsed is None:
+        parsed = parse_instruction(raw)
+        if not parsed:
             continue
+
         direction, dist = parsed
 
-        # count hits during this rotation (k = 1..dist)
+        # Count hits during this rotation
         total_hits += hits_on_zero_during_rotation(pos, direction, dist)
 
-        # update position to end of rotation
+        # Update dial position after rotation
         if direction == 'R':
             pos = (pos + dist) % 100
         else:
@@ -69,16 +75,31 @@ def count_zero_hits_from_lines(lines: Iterable[str]) -> int:
 
     return total_hits
 
-def main():
+
+def read_input_file(path: str = "input.txt") -> list[str]:
+    """
+    Read input lines from file.
+    Default file is 'input.txt' in current folder.
+    """
     try:
-        with open("input.txt", "r", encoding="utf-8") as f:
-            lines = f.readlines()
+        with open(path, "r", encoding="utf-8") as f:
+            return f.readlines()
     except FileNotFoundError:
-        print("Error: 'input.txt' not found in the current folder.", flush=True)
+        print(f"Error: '{path}' not found in the current folder.", flush=True)
+        return []
+
+
+def main():
+    """
+    Entry point: read input, run simulation, print result.
+    """
+    lines = read_input_file("input.txt")
+    if not lines:
         return
 
-    result = count_zero_hits_from_lines(lines)
+    result = count_zero_hits(lines)
     print(result)
+
 
 if __name__ == "__main__":
     main()
